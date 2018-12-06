@@ -4,7 +4,6 @@ package com.qqzeng.zkprimitives.lock;
  * Created by qqzeng.
  */
 
-import com.qqzeng.zkprimitives.leaderElection.LeaderElection;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
@@ -42,45 +41,45 @@ public class ExclusiveLock {
         if (zk == null) {
             try {
                 zk = new ZooKeeper(hostport, SESSION_TIMEOUT, (event) -> {
-                        Watcher.Event.KeeperState state = event.getState();
-                        Watcher.Event.EventType type = event.getType();
-                        LOGGER.info(type + " ============ " + event.getPath());
-                        if (Watcher.Event.KeeperState.SyncConnected == state) {
-                            if (type == Watcher.Event.EventType.None) {
-                                countDownLatch.countDown();
-                                LOGGER.info(logPrefix + " zooKeeper connection created !");
-                                try {
-                                    zk.getData(ROOT, true, null);
-                                    LOGGER.info(logPrefix + " register successfully!");
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            } else if (type == Watcher.Event.EventType.NodeCreated && event.getPath().equals(ROOT + "/lock")) {
-                                LOGGER.info(logPrefix + ": ============= lock node created !");
-                                synchronized (mutex) {
-                                    mutex.notify();
-                                }
-                                try {
-                                    tryToAcquireExclusiveLock();
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                } catch (KeeperException e) {
-                                    e.printStackTrace();
-                                }
-                            } else if (type == Watcher.Event.EventType.NodeChildrenChanged) {
-                                LOGGER.info(logPrefix + ": ============================= lock node created !");
-                                synchronized (mutex) {
-                                    mutex.notify();
-                                }
-                                try {
-                                    tryToAcquireExclusiveLock();
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                } catch (KeeperException e) {
-                                    e.printStackTrace();
-                                }
+                    Watcher.Event.KeeperState state = event.getState();
+                    Watcher.Event.EventType type = event.getType();
+                    LOGGER.info(type + " ============ " + event.getPath());
+                    if (Watcher.Event.KeeperState.SyncConnected == state) {
+                        if (type == Watcher.Event.EventType.None) {
+                            countDownLatch.countDown();
+                            LOGGER.info(logPrefix + " zooKeeper connection created !");
+                            try {
+                                zk.getData(ROOT, true, null);
+                                LOGGER.info(logPrefix + " register successfully!");
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        } else if (type == Watcher.Event.EventType.NodeCreated && event.getPath().equals(ROOT + "/lock")) {
+                            LOGGER.info(logPrefix + ": ============= lock node created !");
+                            synchronized (mutex) {
+                                mutex.notify();
+                            }
+                            try {
+                                tryToAcquireExclusiveLock();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } catch (KeeperException e) {
+                                e.printStackTrace();
+                            }
+                        } else if (type == Watcher.Event.EventType.NodeChildrenChanged) {
+                            LOGGER.info(logPrefix + ": ============================= lock node created !");
+                            synchronized (mutex) {
+                                mutex.notify();
+                            }
+                            try {
+                                tryToAcquireExclusiveLock();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            } catch (KeeperException e) {
+                                e.printStackTrace();
                             }
                         }
+                    }
                 });
             } catch (IOException e) {
                 zk = null;
@@ -141,7 +140,7 @@ public class ExclusiveLock {
 
     private void releaseLock() throws KeeperException, InterruptedException {
         LOGGER.info(this.logPrefix + " begin to release the lock.");
-        zk.delete (ROOT + "/lock", -1);
+        zk.delete(ROOT + "/lock", -1);
         LOGGER.info(this.logPrefix + " release the lock successfully.");
     }
 

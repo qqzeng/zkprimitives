@@ -105,12 +105,12 @@ public class LeaderElectionV1 extends TestMainClientV1 {
                     e.printStackTrace();
                 }
             } else if (type == Event.EventType.NodeChildrenChanged) {
-                LOGGER.info(this.logPrefix  + ": ============= leader node created !");
+                LOGGER.info(logPrefix + " lock node: " + event.getPath() +" created !");
                 super.process(event);
                 following();
             }
 //            else if (type == Event.EventType.NodeCreated && event.getPath().equals(ROOT + "/leader")) {
-//                LOGGER.info(this.logPrefix  + ": ============= leader node created !");
+//                LOGGER.info(logPrefix + " lock node: " + event.getPath() +" deleted !");
 //                super.process(event);
 //                following();
 //            }

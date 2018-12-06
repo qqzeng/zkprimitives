@@ -40,7 +40,6 @@ public class LeaderElection {
                     public void process(WatchedEvent event) {
                         Event.KeeperState state = event.getState();
                         Event.EventType type = event.getType();
-                        LOGGER.info(type + " ============ " + event.getPath()) ;
                         if (Event.KeeperState.SyncConnected == state) {
                             if (type == Event.EventType.None) {
                                 countDownLatch.countDown();
@@ -52,13 +51,13 @@ public class LeaderElection {
                                     e.printStackTrace();
                                 }
                             } else if (type == Event.EventType.NodeCreated && event.getPath().equals(ROOT + "/leader")) {
-                                LOGGER.info(logPrefix + ": ============= leader node created !");
+                                LOGGER.info(logPrefix + " lock node: " + event.getPath() +" created !");
                                 synchronized (mutex) {
                                     mutex.notify();
                                 }
                                 following();
                             } else if (type == Event.EventType.NodeChildrenChanged) {
-                                LOGGER.info(logPrefix  + ": ======================= leader node created !");
+                                LOGGER.info(logPrefix + " lock node: " + event.getPath() +" deleted !");
                                 synchronized (mutex) {
                                     mutex.notify();
                                 }

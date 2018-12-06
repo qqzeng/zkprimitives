@@ -92,7 +92,6 @@ public class LeaderElectionV2 extends TestMainClientV2 {
     public void process(WatchedEvent event) {
         Event.KeeperState state = event.getState();
         Event.EventType type = event.getType();
-        LOGGER.info(type + " ============ " + event.getPath()) ;
         if (Event.KeeperState.SyncConnected == state) {
             if (type == Event.EventType.None) {
                 countDownLatch.countDown();
@@ -104,11 +103,11 @@ public class LeaderElectionV2 extends TestMainClientV2 {
                     e.printStackTrace();
                 }
             } else if (type == Event.EventType.NodeCreated && event.getPath().equals(ROOT + "/leader")) {
-                LOGGER.info(this.logPrefix + ": ============= leader node created !");
+                LOGGER.info(logPrefix + " lock node: " + event.getPath() +" created !");
                 super.process(event);
                 following();
             } else if (type == Event.EventType.NodeChildrenChanged) {
-                LOGGER.info(this.logPrefix  + ": ======================= leader node created !");
+                LOGGER.info(logPrefix + " lock node: " + event.getPath() +" deleted !");
                 super.process(event);
                 following();
             }

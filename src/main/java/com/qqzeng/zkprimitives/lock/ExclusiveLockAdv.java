@@ -23,7 +23,6 @@ import java.util.concurrent.CountDownLatch;
  * <p>
  * In this situation, each client obtains the lock in order of request arrival.
  *
- *
  * About Test:
  * Run the client several times, such as 3 or 5. Every client instance will execute the following process:
  *      1. Create /exclusive-lock-advanced in zookeeper server if it does not exist.
@@ -49,7 +48,7 @@ public class ExclusiveLockAdv {
     protected final Object mutex;
     private String myZnode;
 
-    private static final int NUM_ROUND = 1;
+    private static final int NUM_ROUND = 3;
     private static final int SLEEP_INTERVAL_BASE = 2000;
     private static final int SLEEP_INTERVAL_RANGE = 3000;
 
@@ -62,13 +61,12 @@ public class ExclusiveLockAdv {
                 zk = new ZooKeeper(hostport, SESSION_TIMEOUT, (event) -> {
                     Watcher.Event.KeeperState state = event.getState();
                     Watcher.Event.EventType type = event.getType();
-                    LOGGER.info(type + " ============ " + event.getPath());
                     if (Watcher.Event.KeeperState.SyncConnected == state) {
                         if (type == Watcher.Event.EventType.None) {
                             countDownLatch.countDown();
                             LOGGER.info(logPrefix + " zooKeeper connection created !");
                         } else if (type == Watcher.Event.EventType.NodeDeleted) {
-                            LOGGER.info(logPrefix + ": ============= lock node deleted !");
+                            LOGGER.info(logPrefix + " lock node: " + event.getPath() +" deleted !");
                             synchronized (mutex) {
                                 mutex.notify();
                             }
@@ -92,7 +90,7 @@ public class ExclusiveLockAdv {
         }
     }
 
-    private void tryToAcquireExclusiveLock() throws InterruptedException, KeeperException {
+    private void tryAcquireLock() throws InterruptedException, KeeperException {
         Thread.sleep(SLEEP_INTERVAL_BASE + new Random().nextInt(SLEEP_INTERVAL_RANGE));
         this.myZnode = zk.create(ROOT + "/lock_", ("node-" + nodeNum).getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
         getLock();
@@ -143,7 +141,7 @@ public class ExclusiveLockAdv {
             LOGGER.info("Node " + nodeNum + " try to acquire the distributed exclusive lock.");
             ExclusiveLockAdv el = new ExclusiveLockAdv(nodeNum, CONNECT_STRING);
             try {
-                el.tryToAcquireExclusiveLock();
+                el.tryAcquireLock();
             } catch (Exception e) {
                 e.printStackTrace();
             }
