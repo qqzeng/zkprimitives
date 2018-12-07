@@ -30,8 +30,8 @@ public class ExclusiveLock {
     protected static CountDownLatch countDownLatch = new CountDownLatch(1);
 
     protected ZooKeeper zk = null;
-    protected static int SESSION_TIMEOUT = 10000;
-    protected static String ROOT = "/exclusive-lock";
+    protected static final int SESSION_TIMEOUT = 10000;
+    protected static final String ROOT = "/exclusive-lock";
     protected final Object mutex;
 
     public ExclusiveLock(int nodeNum, String hostport) {

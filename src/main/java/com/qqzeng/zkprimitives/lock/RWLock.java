@@ -46,8 +46,8 @@ public class RWLock {
     private static CountDownLatch countDownLatch = new CountDownLatch(1);
 
     private ZooKeeper zk = null;
-    private static int SESSION_TIMEOUT = 10000;
-    private static String ROOT = "/ReadWrite-lock"; // sharedLock
+    private static final int SESSION_TIMEOUT = 10000;
+    private static final String ROOT = "/ReadWrite-lock"; // sharedLock
     private final Object mutex;
     private String myZnode;
 
@@ -212,7 +212,7 @@ public class RWLock {
 
     private void doWork() throws InterruptedException {
         LOGGER.info(logPrefix + " begin to do work.");
-        Thread.sleep(TASK_INTERVAL_BASE + new Random().nextInt(TASK_INTERVAL_BASE));
+        Thread.sleep(TASK_INTERVAL_BASE + new Random().nextInt(TASK_INTERVAL_RANGE));
         LOGGER.info(logPrefix + " over do work.");
     }
 

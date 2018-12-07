@@ -14,7 +14,15 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 /**
+ * Leader Election, which is corresponding to the Group Membership in paper.
  *
+ * About Test:
+ * Run the client several times, such as 3 or 5. Every client instance will execute the following process:
+ *      1. Create /leader-members in zookeeper server if it does not exist.
+ *      2. Sleep for an interval between [SLEEP_INTERVAL_BASE, SLEEP_INTERVAL_BASE + SLEEP_INTERVAL_RANGE].
+ *      3. Try to create /leader-members/leader.
+ *      4. If success, then exit.
+ *      5. Else, block until being triggered watch event.
  */
 public class LeaderElection {
     private static final Logger LOGGER = Logger.getLogger(LeaderElection.class);
@@ -27,9 +35,12 @@ public class LeaderElection {
     protected static CountDownLatch countDownLatch = new CountDownLatch(1);
 
     protected ZooKeeper zk = null;
-    protected static int SESSION_TIMEOUT = 10000;
-    protected static String ROOT = "/group-members";
+    protected static final int SESSION_TIMEOUT = 10000;
+    protected static final String ROOT = "/group-members";
     protected static Integer mutex;
+
+    private static final int SLEEP_INTERVAL_BASE = 4000;
+    private static final int SLEEP_INTERVAL_RANGE = 3000;
 
     public LeaderElection(int nodeNum, String hostport, String root) {
         if(zk == null){
@@ -93,7 +104,7 @@ public class LeaderElection {
         } else {
             String newLeader = null;
             try {
-                Thread.sleep(4000 + new Random().nextInt(3000));
+                Thread.sleep(SLEEP_INTERVAL_BASE + new Random().nextInt(SLEEP_INTERVAL_RANGE));
                 newLeader = zk.create(ROOT + "/leader", ("node-" + nodeNum).getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             } catch (KeeperException e) {
                 if (e instanceof KeeperException.NodeExistsException) {
@@ -109,7 +120,10 @@ public class LeaderElection {
             } else {
                 zk.getData(ROOT, true, null);
                 LOGGER.info("waiting...........");
-                Thread.sleep(10000);
+//                Thread.sleep(10000);
+                synchronized (mutex) {
+                    mutex.wait();
+                }
             }
         }
     }
@@ -127,8 +141,6 @@ public class LeaderElection {
         return leader;
     }
 
-
-
     private void leading() {
         LOGGER.info(this.logPrefix + " step forward to Leader");
     }
@@ -144,11 +156,6 @@ public class LeaderElection {
         try {
             le.findLeader();
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
             e.printStackTrace();
         }
         LOGGER.info("node-" + nodeNum + " over!");
