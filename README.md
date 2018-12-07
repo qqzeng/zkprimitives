@@ -69,6 +69,6 @@ Run the client several times (such as 3 or 5), and you have corresponding number
 Actually, compared to Double Barrier, Barrier just abandoned the procedure of leaving the barrier when finishing work.
 
 ### Reference
-[1] Hunt P, Konar M, Junqueira F P, et al. ZooKeeper: Wait-free Coordination for Internet-scale Systems[C]//USENIX annual technical conference. 2010, 8(9).
-[2] 倪超. 从 Paxos 到 Zookeeper: 分布式一致性原理与实践[J]. 2015.
-[3] http://zookeeper.apache.org/
+- Hunt P, Konar M, Junqueira F P, et al. ZooKeeper: Wait-free Coordination for Internet-scale Systems[C]//USENIX annual technical conference. 2010, 8(9).
+- 倪超. 从 Paxos 到 Zookeeper: 分布式一致性原理与实践[J]. 2015.
+- http://zookeeper.apache.org/
