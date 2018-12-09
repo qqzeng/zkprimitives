@@ -40,12 +40,12 @@ public class ExclusiveLockAdv {
     private int nodeNum;
     private String logPrefix;
 
-    protected static CountDownLatch countDownLatch = new CountDownLatch(1);
+    private static CountDownLatch countDownLatch = new CountDownLatch(1);
 
-    protected ZooKeeper zk = null;
-    protected static final int SESSION_TIMEOUT = 10000;
-    protected static final String ROOT = "/exclusive-lock-advanced";
-    protected final Object mutex;
+    private ZooKeeper zk = null;
+    private static final int SESSION_TIMEOUT = 10000;
+    private static final String ROOT = "/exclusive-lock-advanced";
+    private final Object mutex;
     private String myZnode;
 
     private static final int NUM_ROUND = 3;

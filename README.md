@@ -39,12 +39,14 @@ You can also test read and write transaction sets according to custom order. For
 Leader Election, which is corresponding to the Group Membership in paper.
 
 #### About Test
+In this demonstration, we want to have every client to step forward once in turn, not just operate a round of leader election.
 Run the client several times (such as 3 or 5), and you have corresponding number of clients. Every client instance will execute the following process:
 - Create /leader-members in zookeeper server if it does not exist.
 - Sleep for an interval between [`SLEEP_INTERVAL_BASE`, `SLEEP_INTERVAL_BASE` + `SLEEP_INTERVAL_RANGE`].
 - Try to create /leader-members/leader.
 - If success, then exit.
-- Else block until being triggered watch event.
+- Else block until being triggered by watch event.
+- After being notified (the predecessor has stepped down), it still tries stepping forward by doing [3-6] again.
 
 ## Queue
 Zookeeper also can be applied to distributed queue, which resembling Message Queue Middleware, such as ActiveMQ and Kafaka.
