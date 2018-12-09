@@ -38,7 +38,7 @@ public class LeaderElection {
     private int nodeNum;
     private String logPrefix;
 
-    private ZooKeeper zk = null;
+    private ZooKeeper zk;
     private static final int SESSION_TIMEOUT = 10000;
     private static final String ROOT = "/group-members";
     private Object mutex;

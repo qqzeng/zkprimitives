@@ -27,81 +27,64 @@ public class ExclusiveLock {
     private int nodeNum;
     private String logPrefix;
 
-    protected static CountDownLatch countDownLatch = new CountDownLatch(1);
+    private static CountDownLatch countDownLatch = new CountDownLatch(1);
 
-    protected ZooKeeper zk = null;
-    protected static final int SESSION_TIMEOUT = 10000;
-    protected static final String ROOT = "/exclusive-lock";
-    protected final Object mutex;
+    private ZooKeeper zk;
+    private static final int SESSION_TIMEOUT = 10000;
+    private static final String ROOT = "/exclusive-lock";
+    private final Object mutex;
+
+    private static final int NUM_ROUND = 3;
 
     public ExclusiveLock(int nodeNum, String hostport) {
-        mutex = new Object();
+        this.mutex = new Object();
         this.nodeNum = nodeNum;
         this.logPrefix = "node-" + nodeNum;
-        if (zk == null) {
-            try {
-                zk = new ZooKeeper(hostport, SESSION_TIMEOUT, (event) -> {
-                    Watcher.Event.KeeperState state = event.getState();
-                    Watcher.Event.EventType type = event.getType();
-                    LOGGER.info(type + " ============ " + event.getPath());
-                    if (Watcher.Event.KeeperState.SyncConnected == state) {
-                        if (type == Watcher.Event.EventType.None) {
-                            countDownLatch.countDown();
-                            LOGGER.info(logPrefix + " zooKeeper connection created !");
-                            try {
-                                zk.getData(ROOT, true, null);
-                                LOGGER.info(logPrefix + " register successfully!");
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        } else if (type == Watcher.Event.EventType.NodeCreated && event.getPath().equals(ROOT + "/lock")) {
-                            LOGGER.info(logPrefix + ": ============= lock node created !");
-                            synchronized (mutex) {
-                                mutex.notify();
-                            }
-                            try {
-                                tryToAcquireExclusiveLock();
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            } catch (KeeperException e) {
-                                e.printStackTrace();
-                            }
-                        } else if (type == Watcher.Event.EventType.NodeChildrenChanged) {
-                            LOGGER.info(logPrefix + ": ============================= lock node created !");
-                            synchronized (mutex) {
-                                mutex.notify();
-                            }
-                            try {
-                                tryToAcquireExclusiveLock();
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            } catch (KeeperException e) {
-                                e.printStackTrace();
-                            }
+        try {
+            zk = new ZooKeeper(hostport, SESSION_TIMEOUT, (event) -> {
+                Watcher.Event.KeeperState state = event.getState();
+                Watcher.Event.EventType type = event.getType();
+                if (Watcher.Event.KeeperState.SyncConnected == state) {
+                    if (type == Watcher.Event.EventType.None) {
+                        countDownLatch.countDown();
+                        LOGGER.info(logPrefix + " zooKeeper connection created !");
+                        createRoot();
+                    } else if (type == Watcher.Event.EventType.NodeChildrenChanged) {
+                        LOGGER.info(logPrefix + " lock node: " + event.getPath() + " has updated its child node!");
+                        synchronized (mutex) {
+                            mutex.notify();
                         }
                     }
-                });
-            } catch (IOException e) {
-                zk = null;
-            }
-        }
-        if (zk != null) {
-            try {
-                Stat s = zk.exists(ROOT, true);
-                if (s == null) {
-                    String rootNode = zk.create(ROOT, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-                    LOGGER.info(this.logPrefix + rootNode + " create successfully !");
                 }
-            } catch (Exception e) {
-                LOGGER.error(e);
-            }
+            });
+        } catch (IOException e) {
+            zk = null;
+            e.printStackTrace();
+        }
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    private void tryToAcquireExclusiveLock() throws InterruptedException, KeeperException {
+    private void createRoot() {
+        try {
+            Stat s = zk.exists(ROOT, false);
+            if (s == null) {
+                String rootNode = zk.create(ROOT, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                LOGGER.info(this.logPrefix + rootNode + " create successfully !");
+            }
+        } catch (Exception e) {
+            LOGGER.error(e);
+        }
+    }
+
+    private void tryAcquireLock() throws InterruptedException, KeeperException {
         byte[] lockNode = getLockNode();
         if (lockNode != null) {
             waitForLock();
+            tryAcquireLock();
         } else {
             String newLock = null;
             try {
@@ -120,6 +103,7 @@ public class ExclusiveLock {
                 releaseLock();
             } else {
                 waitForLock();
+                tryAcquireLock();
             }
         }
     }
@@ -144,8 +128,10 @@ public class ExclusiveLock {
         LOGGER.info(this.logPrefix + " release the lock successfully.");
     }
 
-    private void waitForLock() throws InterruptedException {
+    private void waitForLock() throws InterruptedException, KeeperException {
         synchronized (mutex) {
+            zk.getChildren(ROOT, true);
+            LOGGER.info(logPrefix + " register successfully!");
             LOGGER.info(this.logPrefix + " waits for the lock.");
             mutex.wait();
         }
@@ -158,13 +144,16 @@ public class ExclusiveLock {
     }
 
     public static void main(String[] args) {
-        final int nodeNum = new Random().nextInt(10);
+        final int nodeNum = new Random().nextInt(100);
         LOGGER.info("Node " + nodeNum + " try to acquire the distributed exclusive lock.");
         ExclusiveLock el = new ExclusiveLock(nodeNum, CONNECT_STRING);
-        try {
-            el.tryToAcquireExclusiveLock();
-        } catch (Exception e) {
-            e.printStackTrace();
+        for (int i = 0; i < NUM_ROUND; i++) {
+            try {
+                el.tryAcquireLock();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            LOGGER.info("node-" + nodeNum + " complete round " + i + ".");
         }
         LOGGER.info("node-" + nodeNum + " exit!");
     }
